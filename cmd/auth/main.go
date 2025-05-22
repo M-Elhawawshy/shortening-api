@@ -1,20 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
 	"shortening-api/internal/helpers"
 )
+
+type application struct {
+}
 
 func main() {
 	_, err := helpers.OpenDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	port, err := helpers.GetPort("AUTH_PORT")
+	port, err := helpers.GetEnv("AUTH_PORT")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(port)
-
+	app := application{}
+	log.Fatal(http.ListenAndServe(":"+port, app.routes()))
 }
