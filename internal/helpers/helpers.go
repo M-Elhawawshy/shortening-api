@@ -2,8 +2,11 @@ package helpers
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/go-playground/form"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
+	"net/http"
 	"os"
 )
 
@@ -25,10 +28,29 @@ func OpenDB() (*pgx.Conn, error) {
 	return conn, nil
 }
 
-func GetPort(portName string) (string, error) {
+func GetEnv(env string) (string, error) {
 	if err := godotenv.Load(); err != nil {
 		return "", err
 	}
-	port := os.Getenv(portName)
+	port := os.Getenv(env)
 	return port, nil
+}
+
+func ParseForm(r *http.Request, dest any) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	decoder := form.NewDecoder()
+	if err := decoder.Decode(dest, r.PostForm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// InvalidCredentialsResponse todo: InvalidCredentialsResponse need to confirm that it's working
+func InvalidCredentialsResponse(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"})
 }

@@ -1,13 +1,17 @@
 package main
 
-import "net/http"
+import (
+	"github.com/justinas/alice"
+	"net/http"
+)
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
+	standard := alice.New(app.recoverPanic, app.logRequest)
 
-	mux.HandleFunc("/api/auth/signup", func(w http.ResponseWriter, r *http.Request) {})
-	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {})
-	mux.HandleFunc("/api/auth/logout", func(w http.ResponseWriter, r *http.Request) {})
+	mux.HandleFunc("/api/auth/signup", app.signUpHandler)
+	mux.HandleFunc("/api/auth/login", app.loginHandler)
+	mux.HandleFunc("/api/auth/logout", app.logoutHandler)
 
-	return mux
+	return standard.Then(mux)
 }
