@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	signBytes, err := os.ReadFile("config/keys/private_key.pem")
+	signBytes, err := os.ReadFile("./cmd/auth/config/keys/private_key.pem")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	verifyBytes, err := os.ReadFile("config/keys/public_key.pem")
+	verifyBytes, err := os.ReadFile("./cmd/auth/config/keys/public_key.pem")
 	if err != nil {
 		log.Fatal(err)
 	}

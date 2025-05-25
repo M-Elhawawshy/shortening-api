@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
@@ -20,8 +21,8 @@ const (
 )
 
 type loginForm struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `form:"email"`
+	Password string `form:"password"`
 }
 
 func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,8 +90,8 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type SignUpForm struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `form:"email"`
+	Password string `form:"password"`
 }
 
 func (app *application) signUpHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,8 +100,7 @@ func (app *application) signUpHandler(w http.ResponseWriter, r *http.Request) {
 		app.badRequest(w, r, err)
 		return
 	}
-
-	if Matches(signUpForm.Email, EmailRX) || !Blank(signUpForm.Password) || MinChars(signUpForm.Password, 8) {
+	if !Matches(signUpForm.Email, EmailRX) || Blank(signUpForm.Password) || !MinChars(signUpForm.Password, 8) {
 		app.badRequest(w, r, fmt.Errorf("invalid signing up credentials"))
 		return
 	}
@@ -117,6 +117,11 @@ func (app *application) signUpHandler(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(passwordHash),
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			app.clientError(w, r, err, http.StatusConflict)
+			return
+		}
 		app.serverError(w, r, err)
 		return
 	}
@@ -217,7 +222,7 @@ func (app *application) logoutHandler(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, r, err)
 		return
 	}
-	app.logger.Debug("Token revoked", "jti", jti.String(), " serID:", userID, "expiresAt:", expiresAt.String())
+	app.logger.Debug("Token revoked", "jti", jti.String(), " UserID:", userID, "expiresAt:", expiresAt.String())
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
