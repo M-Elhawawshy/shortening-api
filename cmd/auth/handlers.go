@@ -325,7 +325,6 @@ func (app *application) refreshHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(&accessToken)
 
 	if err != nil {
-		app.serverError(w, r, err)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "refresh_token",
 			HttpOnly: true,
@@ -334,6 +333,7 @@ func (app *application) refreshHandler(w http.ResponseWriter, r *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 		})
+		app.serverError(w, r, err)
 	}
 }
 
