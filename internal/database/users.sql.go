@@ -71,3 +71,23 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	)
 	return i, err
 }
+
+const updateUserURLCounter = `-- name: UpdateUserURLCounter :one
+UPDATE users
+SET total_url_shortened = total_url_shortened + 1
+WHERE id = $1
+RETURNING id, email, password_hash, created_at, total_url_shortened
+`
+
+func (q *Queries) UpdateUserURLCounter(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserURLCounter, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.TotalUrlShortened,
+	)
+	return i, err
+}

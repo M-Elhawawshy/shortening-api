@@ -11,4 +11,8 @@ INSERT INTO users (id, email, password_hash)
 VALUES ($1, $2, $3)
 RETURNING *;
 
-
+-- name: UpdateUserURLCounter :one
+UPDATE users
+SET total_url_shortened = total_url_shortened + 1
+WHERE id = $1
+RETURNING *;

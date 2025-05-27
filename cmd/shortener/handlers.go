@@ -92,6 +92,8 @@ func (app *application) shortenerHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if inserted {
+		// we don't care that much about counter failing
+		_, _ = app.queries.UpdateUserURLCounter(r.Context(), useruuid)
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(ShortLinkResponder{encodedStr}); err != nil {
 			app.serverError(w, r, err)
