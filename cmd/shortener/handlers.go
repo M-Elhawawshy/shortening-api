@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -14,6 +15,9 @@ import (
 	"shortening-api/internal/helpers"
 )
 
+type ShortLinkResponder struct {
+	ShortLink string `json:"short_link"`
+}
 type LinkSubmissionForm struct {
 	Link string `form:"link" json:"link"`
 }
@@ -88,7 +92,11 @@ func (app *application) shortenerHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if inserted {
-		_, _ = w.Write([]byte(encodedStr))
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(ShortLinkResponder{encodedStr}); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
 	} else {
 		// some sorcery with the links
 		app.clientError(w, r, fmt.Errorf("tried 3 times with hash but failed"), http.StatusBadRequest)
