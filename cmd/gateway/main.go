@@ -1,17 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"shortening-api/internal/database"
 	"shortening-api/internal/helpers"
-	"strings"
 )
 
 type application struct {
@@ -68,100 +64,4 @@ func main() {
 	})
 	log.Println("Auth app is listening on port: " + port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
-}
-
-func (app *application) proxyHandler(serviceBaseURL string) http.Handler {
-	targetURL, err := url.Parse(serviceBaseURL)
-	if err != nil {
-		panic("invalid proxy target: " + err.Error())
-	}
-	app.logger.Debug("Proxy target URL: " + targetURL.String())
-
-	proxy := &httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			routePattern := chi.RouteContext(req.Context()).RoutePattern()
-
-			prefix := routePattern
-			if strings.HasSuffix(prefix, "/*") {
-				prefix = prefix[:len(prefix)-2]
-			}
-
-			suffix := strings.TrimPrefix(req.URL.Path, prefix)
-			if suffix == "" {
-				suffix = "/"
-			}
-
-			app.logger.Debug("Route pattern: " + routePattern)
-			app.logger.Debug("Prefix used for trimming: " + prefix)
-			app.logger.Debug("Suffix path: " + suffix)
-
-			req.URL.Scheme = targetURL.Scheme
-			req.URL.Host = targetURL.Host
-			req.URL.Path = singleJoiningSlash(targetURL.Path, suffix)
-			req.URL.RawPath = ""
-			req.Host = targetURL.Host
-
-			app.logger.Debug("Proxied URL path: " + req.URL.Path)
-		},
-	}
-	return proxy
-}
-func singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
-	switch {
-	case aslash && bslash:
-		return a + b[1:] // remove duplicate slash
-	case !aslash && !bslash:
-		return a + "/" + b // add missing slash
-	}
-	return a + b // one slash already present
-}
-
-func (app *application) authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// todo: unimplemented
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) logRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var (
-			ip     = r.RemoteAddr
-			proto  = r.Proto
-			method = r.Method
-			uri    = r.URL.RequestURI()
-		)
-
-		app.logger.Info("received request", "ip", ip, "proto", proto, "method", method, "uri", uri)
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) recoverPanic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		defer func() {
-			if err := recover(); err != nil {
-				w.Header().Set("Connection", "close")
-
-				app.serverError(w, r, fmt.Errorf("%s", err))
-			}
-		}()
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Error(err.Error(), "method: ", r.Method, " uri: ", r.RequestURI)
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-}
-
-func (app *application) clientError(w http.ResponseWriter, r *http.Request, err error, status int) {
-	app.logger.Error(err.Error(), "method: ", r.Method, " uri: ", r.RequestURI)
-	http.Error(w, http.StatusText(status), status)
 }
