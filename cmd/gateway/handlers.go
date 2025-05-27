@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"shortening-api/internal/helpers"
 	"strings"
 )
 
@@ -38,7 +39,11 @@ func (app *application) proxyHandler(serviceBaseURL string) http.Handler {
 			req.URL.Path = singleJoiningSlash(targetURL.Path, suffix)
 			req.URL.RawPath = ""
 			req.Host = targetURL.Host
-
+			ctx := req.Context()
+			if userID, ok := ctx.Value(helpers.UserIDKey).(string); ok {
+				app.logger.Debug("forwarding user ID into http headers")
+				req.Header.Set("X-User-ID", userID)
+			}
 			app.logger.Debug("Proxied URL path: " + req.URL.Path)
 		},
 	}

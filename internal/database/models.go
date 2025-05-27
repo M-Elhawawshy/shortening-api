@@ -8,7 +8,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Link struct {
+	Hash      string
+	UserID    uuid.UUID
+	Link      pgtype.Text
+	CreatedAt time.Time
+}
 
 type RevokedToken struct {
 	Jti       uuid.UUID

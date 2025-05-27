@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -61,7 +62,12 @@ func (app *application) authMiddleware(next http.Handler) http.Handler {
 			app.clientError(w, r, err, http.StatusUnauthorized)
 			return
 		}
+		// putting the user id in the context
+		userID := token.Claims.(*jwt.RegisteredClaims).Subject
+		ctx := context.WithValue(r.Context(), helpers.UserIDKey, userID)
+		r = r.WithContext(ctx)
 
+		app.logger.Debug("userID: " + userID)
 		app.logger.Debug("access_token: " + token.Raw)
 		next.ServeHTTP(w, r)
 	})

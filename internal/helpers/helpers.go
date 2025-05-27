@@ -10,6 +10,10 @@ import (
 	"os"
 )
 
+type contextKey string
+
+const UserIDKey contextKey = "userID"
+
 func OpenDB() (*pgx.Conn, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, err
